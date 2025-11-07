@@ -113,7 +113,7 @@ class OracleConnector(_BaseConnector):
 class DatabaseManager:
     def __init__(self, db_type: str, config: dict[str, Any]):
         self.connector = _create_connector(db_type, config)
-        self.db_type = db_type
+        self._db_type = db_type
 
     def fetch(self, query: str) -> FetchResult:
         try:
@@ -123,8 +123,9 @@ class DatabaseManager:
             raise ConnectionError("Error connecting to the database check credentials") from None
 
     def check_connection(self) -> bool:
-        query = "SELECT 101 AS test_column from dual" if self.db_type == "oracle" else "SELECT 101 AS test_column"
-
+        query = "SELECT 101 AS test_column"
+        if self._db_type.lower() == "Oracle":
+            query = "SELECT 101 AS test_column FROM dual"
         result = self.fetch(query)
         if result is None:
             return False
