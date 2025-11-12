@@ -1,6 +1,3 @@
-@./spoolhead.sql
--- spool results/perf_hm.csv
-
 SELECT TO_CHAR(mtime,'YYYY/MM/DD') mtime,
 	      pdb_name,
 	      instance_number,
@@ -41,7 +38,6 @@ SELECT TO_CHAR(mtime,'YYYY/MM/DD') mtime,
 	      GROUP BY cont.name, mtime,instance_number,core_nb
 	      order by 1,2,3
 	      )
-/
 
 -- col "00-01_ " for 90.99
 -- col "01-02_ " for 90.99
@@ -127,6 +123,3 @@ SELECT TO_CHAR(mtime,'YYYY/MM/DD') mtime,
 --             )
 -- ORDER BY mtime
 -- /
-spool off
-exit
-

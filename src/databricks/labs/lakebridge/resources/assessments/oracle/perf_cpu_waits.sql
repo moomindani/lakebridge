@@ -1,6 +1,5 @@
  -- Has to be executed on CDB
-@./spoolhead.sql
--- spool results/perf_cpu_waits.csv
+
 select cont.name as pdb_name,
        ash.instance_number,
        ash.mtime,
@@ -23,7 +22,4 @@ from (SELECT instance_number,con_id,CON_DBID,
 where cont.con_id=ash.con_id
       and cont.dbid=ash.CON_DBID
 ORDER BY pdb_name,mtime
-/
-spool off
-exit
 

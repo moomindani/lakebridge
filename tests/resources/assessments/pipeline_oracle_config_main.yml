@@ -1,0 +1,11 @@
+name: oracle_assessment
+version: "1.0"
+extract_folder: "/tmp/data/oracle_assessment"
+steps:
+  - name: containers
+    type: sql
+    extract_source: src/databricks/labs/lakebridge/resources/assessments/oracle/config_containers.sql
+    mode: overwrite
+    frequency: once
+    flag: active
+

@@ -1,7 +1,3 @@
-@./spoolhead.sql
---  results/config_storage.csv
-col tablespace_type for a20
-
 select con_name,
 --       sub.tablespace_name,
        case
@@ -38,7 +34,3 @@ group by con_name,
          ELSE 'USER_DATA'
        end
 order by 1
-/
-spool off
-exit
-

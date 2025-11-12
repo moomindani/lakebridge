@@ -1,6 +1,3 @@
-@./spoolhead.sql
--- spool results/config_memory_evolution.csv
-
 select NVL(con.name,'Entire CDB/Non CDB') con_name,
 	    param.instance_number,
 	    to_char(snap.snap_time,'yyyy-mm-dd HH24:MI:SS') as snap_time,
@@ -28,7 +25,3 @@ and param.parameter_name in ('sga_target',
                              'memory_target',
                              'memory_max_target')
 order by 1,3,2
-/
-
-spool off
-exit

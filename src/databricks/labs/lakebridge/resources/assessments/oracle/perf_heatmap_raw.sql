@@ -1,12 +1,3 @@
-set serveroutput on
-@./spoolhead.sql
---set timing off
---set heading off
---set termout off
---set verify off
-
--- spool scripts/main/perf_addon/script.sql
-
 declare
   cursor c is select inst_id from gv$instance order by 1;
 begin

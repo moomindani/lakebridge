@@ -1,6 +1,4 @@
 -- Has to be executed on CDB
-@./spoolhead.sql
--- spool results/config_pdb_objects.csv
 
 SELECT cont.NAME as PDB_NAME,OWNER,OBJECT_TYPE,COUNT(*) as CNT
 FROM CDB_OBJECTS o,
@@ -9,8 +7,4 @@ WHERE o.CON_ID=cont.con_id
 AND OWNER in (select username from cdb_users where oracle_maintained='N' and cont.con_id=con_id)
 GROUP BY cont.name,OWNER,OBJECT_TYPE
 ORDER BY 1,2
-/
-
-spool off
-exit
 

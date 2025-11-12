@@ -1,6 +1,4 @@
 -- Has to be executed on CDB
-@./spoolhead.sql
--- spool results/config_db_features.csv
 with t as (select version from product_component_version where product like 'Oracle Database%'),
 	  inst_cnt as (select count(*) as cnt from gv$instance),
 	  pdb_cnt as (select count(distinct con_id ) as cnt from gv$pdbs where name!='PDB$SEED'),
@@ -29,7 +27,3 @@ union
 select scope, inst_id, stat_name, detailed_stat_name, to_char(value) from cpu_cores_details
 )
 order by name
-/
-spool off
-exit
-

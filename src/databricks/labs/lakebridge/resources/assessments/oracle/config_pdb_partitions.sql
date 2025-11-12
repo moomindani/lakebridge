@@ -1,7 +1,4 @@
 -- Has to be executed on CDB
-@./spoolhead.sql
--- spool results/config_pdb_partitions.csv
-
 SELECT cont.NAME as PDB_NAME,OWNER,OBJECT_TYPE,CNT
 from
 (
@@ -21,8 +18,4 @@ from
 WHERE u.CON_ID=cont.con_id
 AND OWNER in (select username from cdb_users where oracle_maintained='N' and cont.con_id=u.con_id)
 ORDER BY 1,2
-/
-
-spool off
-exit
 
