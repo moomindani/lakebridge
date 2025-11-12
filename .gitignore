@@ -24,3 +24,4 @@ remorph_transpile/
 /linter/src/main/antlr4/library/gen/
 .databricks-login.json
 .mypy_cache
+.env

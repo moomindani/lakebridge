@@ -166,6 +166,7 @@ class TranspileConfig:
     error_file_path: str | None = None
     sdk_config: dict[str, str] | None = None
     skip_validation: bool = False
+    include_llm: bool = False
     catalog_name: str = "remorph"
     schema_name: str = "transpiler"
     transpiler_options: JsonValue = None
@@ -274,5 +275,7 @@ class ReconcileConfig:
 
 @dataclass
 class LakebridgeConfiguration:
-    transpile: TranspileConfig | None = None
-    reconcile: ReconcileConfig | None = None
+    transpile: TranspileConfig | None
+    reconcile: ReconcileConfig | None
+    # Temporary flag, indicating whether to include the LLM-based Switch transpiler.
+    include_switch: bool = False
