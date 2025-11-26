@@ -73,4 +73,10 @@ steps:
     extract_source: src/databricks/labs/lakebridge/resources/assessments/oracle/perf_sqltext.sql
     mode: overwrite
     frequency: once
-    flag: inactive
+    flag: active
+  - name: test_nulloutput
+    type: sql
+    extract_source: src/databricks/labs/lakebridge/resources/assessments/oracle/test_nulloutput.sql
+    mode: overwrite
+    frequency: once
+    flag: active

@@ -29,7 +29,7 @@ def test_Oracle_profile_execution() -> None:
     config_file = path_prefix / "src/databricks/labs/lakebridge/resources/assessments/oracle/pipeline_config.yml"
     config = profiler.path_modifier(config_file=config_file, path_prefix=path_prefix)
     profiler.profile(pipeline_config=config)
-    assert Path("/tmp/profiler_main/profiler_extract.db").exists(), "Profiler extract database should be created"
+    assert Path("/tmp/data/oracle_assessment/profiler_extract.db").exists(), "Profiler extract database should be created"
 
 # End of Oracle profiler tests section
 
