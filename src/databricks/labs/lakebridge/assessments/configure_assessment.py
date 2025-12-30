@@ -194,33 +194,39 @@ class ConfigureSnowflakeAssessment(AssessmentConfigurator):
         secret_vault_name = None
 
         # Snowflake Connection Settings
-        logger.info("Please provide Snowflake connection details:")
+        logger.info("🔐 Snowflake Assessment Configuration")
+        logger.info("Please provide your Snowflake connection details:")
         
-        # Authentication method selection
-        auth_options = ["password", "externalbrowser"]
-        auth_method = self.prompts.choice("Select authentication method", auth_options)
+        # Authentication method selection with clear examples
+        logger.info("\nAuthentication Options:")
+        logger.info("  [0] External Browser (SSO) - Opens browser for authentication")
+        logger.info("      Example: jdbc:snowflake://IKSJSZD-ZAB08105.snowflakecomputing.com/?user=JWNEIL&warehouse=BANANAPUDDING&authenticator=externalbrowser")
+        logger.info("  [1] Password/Token - Direct username/password authentication")
+        logger.info("      Example: jdbc:snowflake://IKSJSZD-ZAB08105.snowflakecomputing.com/?user=JWNEIL&warehouse=BANANAPUDDING&password=my_password")
+        
+        auth_method = self.prompts.choice("Select authentication method", ["externalbrowser", "password"])
         
         snowflake_connection = {
-            "account": self.prompts.question("Enter Snowflake account identifier (e.g., myaccount.us-east-1)"),
-            "user": self.prompts.question("Enter Snowflake username"),
-            "warehouse": self.prompts.question("Enter Snowflake warehouse name", default="COMPUTE_WH"),
-            "database": self.prompts.question("Enter Snowflake database name", default="SNOWFLAKE"),
-            "schema": self.prompts.question("Enter Snowflake schema name", default="ACCOUNT_USAGE"),
-            "role": self.prompts.question("Enter Snowflake role", default="ACCOUNTADMIN"),
+            "account": self.prompts.question("Enter Snowflake account URL (e.g., IKSJSZD-ZAB08105.snowflakecomputing.com)", default="myaccount.snowflakecomputing.com"),
+            "user": self.prompts.question("Enter username (e.g., JWNEIL)"),
+            "warehouse": self.prompts.question("Enter warehouse name", default="COMPUTE_WH"),
+            "database": self.prompts.question("Enter database name", default="SNOWFLAKE"),
+            "schema": self.prompts.question("Enter schema name", default="ACCOUNT_USAGE"),
+            "role": self.prompts.question("Enter role", default="ACCOUNTADMIN"),
             "authenticator": auth_method,
         }
         
         # Only ask for password if using password authentication
         if auth_method == "password":
-            snowflake_connection["password"] = self.prompts.password("Enter Snowflake password or token")
+            snowflake_connection["password"] = self.prompts.password("Enter password or token")
 
-        # Profiler Settings
-        logger.info("Please configure profiler settings:")
+        # Profiler Settings - Fixed configuration (no user options)
+        logger.info("📊 Assessment will profile all objects and metrics comprehensively")
         snowflake_profiler = {
-            "lookback_days": int(self.prompts.question("Enter lookback period in days", default="90")),
-            "exclude_system_objects": self.prompts.confirm("Exclude system objects from profiling?"),
-            "include_performance_metrics": self.prompts.confirm("Include performance metrics?"),
-            "include_cost_analysis": self.prompts.confirm("Include cost analysis?"),
+            "lookback_days": 90,  # Fixed 90-day lookback
+            "exclude_system_objects": False,  # Include everything
+            "include_performance_metrics": True,
+            "include_cost_analysis": True,
         }
 
         credential = {
