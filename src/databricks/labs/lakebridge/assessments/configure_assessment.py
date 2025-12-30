@@ -195,23 +195,32 @@ class ConfigureSnowflakeAssessment(AssessmentConfigurator):
 
         # Snowflake Connection Settings
         logger.info("Please provide Snowflake connection details:")
+        
+        # Authentication method selection
+        auth_options = ["password", "externalbrowser"]
+        auth_method = self.prompts.choice("Select authentication method", auth_options)
+        
         snowflake_connection = {
             "account": self.prompts.question("Enter Snowflake account identifier (e.g., myaccount.us-east-1)"),
             "user": self.prompts.question("Enter Snowflake username"),
-            "password": self.prompts.password("Enter Snowflake password or token"),
             "warehouse": self.prompts.question("Enter Snowflake warehouse name", default="COMPUTE_WH"),
             "database": self.prompts.question("Enter Snowflake database name", default="SNOWFLAKE"),
             "schema": self.prompts.question("Enter Snowflake schema name", default="ACCOUNT_USAGE"),
             "role": self.prompts.question("Enter Snowflake role", default="ACCOUNTADMIN"),
+            "authenticator": auth_method,
         }
+        
+        # Only ask for password if using password authentication
+        if auth_method == "password":
+            snowflake_connection["password"] = self.prompts.password("Enter Snowflake password or token")
 
         # Profiler Settings
         logger.info("Please configure profiler settings:")
         snowflake_profiler = {
             "lookback_days": int(self.prompts.question("Enter lookback period in days", default="90")),
-            "exclude_system_objects": self.prompts.confirm("Exclude system objects from profiling?", default=True),
-            "include_performance_metrics": self.prompts.confirm("Include performance metrics?", default=True),
-            "include_cost_analysis": self.prompts.confirm("Include cost analysis?", default=True),
+            "exclude_system_objects": self.prompts.confirm("Exclude system objects from profiling?"),
+            "include_performance_metrics": self.prompts.confirm("Include performance metrics?"),
+            "include_cost_analysis": self.prompts.confirm("Include cost analysis?"),
         }
 
         credential = {

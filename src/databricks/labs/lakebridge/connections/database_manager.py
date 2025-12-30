@@ -79,17 +79,26 @@ class SnowflakeConnector(_BaseConnector):
         
         account = connection_config["account"]
         user = connection_config["user"]
-        password = connection_config["password"]
         warehouse = connection_config.get("warehouse", "COMPUTE_WH")
         database = connection_config.get("database", "SNOWFLAKE")
         schema = connection_config.get("schema", "ACCOUNT_USAGE")
         role = connection_config.get("role", "ACCOUNTADMIN")
+        authenticator = connection_config.get("authenticator", "password")
 
-        # Build Snowflake SQLAlchemy URL
-        snowflake_url = (
-            f"snowflake://{user}:{password}@{account}/"
-            f"{database}/{schema}?warehouse={warehouse}&role={role}"
-        )
+        # Build Snowflake SQLAlchemy URL based on authentication method
+        if authenticator == "externalbrowser":
+            # For external browser authentication, don't include password in URL
+            snowflake_url = (
+                f"snowflake://{user}@{account}/"
+                f"{database}/{schema}?warehouse={warehouse}&role={role}&authenticator=externalbrowser"
+            )
+        else:
+            # For password authentication
+            password = connection_config["password"]
+            snowflake_url = (
+                f"snowflake://{user}:{password}@{account}/"
+                f"{database}/{schema}?warehouse={warehouse}&role={role}"
+            )
 
         engine = create_engine(snowflake_url)
         return engine
