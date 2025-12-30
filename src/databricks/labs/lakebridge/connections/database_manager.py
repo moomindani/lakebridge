@@ -65,7 +65,34 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
 
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
-        raise NotImplementedError("Snowflake connector not implemented")
+        try:
+            import snowflake.sqlalchemy
+            from sqlalchemy import create_engine
+        except ImportError as e:
+            raise ImportError(
+                "Snowflake connector requires 'snowflake-connector-python' and 'snowflake-sqlalchemy'. "
+                "Install with: pip install snowflake-connector-python snowflake-sqlalchemy"
+            ) from e
+
+        # Extract connection details from config
+        connection_config = self._config.get("connection", self._config)
+        
+        account = connection_config["account"]
+        user = connection_config["user"]
+        password = connection_config["password"]
+        warehouse = connection_config.get("warehouse", "COMPUTE_WH")
+        database = connection_config.get("database", "SNOWFLAKE")
+        schema = connection_config.get("schema", "ACCOUNT_USAGE")
+        role = connection_config.get("role", "ACCOUNTADMIN")
+
+        # Build Snowflake SQLAlchemy URL
+        snowflake_url = (
+            f"snowflake://{user}:{password}@{account}/"
+            f"{database}/{schema}?warehouse={warehouse}&role={role}"
+        )
+
+        engine = create_engine(snowflake_url)
+        return engine
 
 
 class MSSQLConnector(_BaseConnector):

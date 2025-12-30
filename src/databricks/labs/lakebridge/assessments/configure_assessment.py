@@ -179,6 +179,55 @@ class ConfigureSynapseAssessment(AssessmentConfigurator):
         return source
 
 
+class ConfigureSnowflakeAssessment(AssessmentConfigurator):
+    """Snowflake specific assessment configuration."""
+
+    def _configure_credentials(self) -> str:
+        cred_file = self._credential_file
+        source = self._source_name
+
+        logger.info(
+            "\n(local | env) \nlocal means values are read as plain text \nenv means values are read "
+            "from environment variables fall back to plain text if not variable is not found\n",
+        )
+        secret_vault_type = str(self.prompts.choice("Enter secret vault type (local | env)", ["local", "env"])).lower()
+        secret_vault_name = None
+
+        # Snowflake Connection Settings
+        logger.info("Please provide Snowflake connection details:")
+        snowflake_connection = {
+            "account": self.prompts.question("Enter Snowflake account identifier (e.g., myaccount.us-east-1)"),
+            "user": self.prompts.question("Enter Snowflake username"),
+            "password": self.prompts.password("Enter Snowflake password or token"),
+            "warehouse": self.prompts.question("Enter Snowflake warehouse name", default="COMPUTE_WH"),
+            "database": self.prompts.question("Enter Snowflake database name", default="SNOWFLAKE"),
+            "schema": self.prompts.question("Enter Snowflake schema name", default="ACCOUNT_USAGE"),
+            "role": self.prompts.question("Enter Snowflake role", default="ACCOUNTADMIN"),
+        }
+
+        # Profiler Settings
+        logger.info("Please configure profiler settings:")
+        snowflake_profiler = {
+            "lookback_days": int(self.prompts.question("Enter lookback period in days", default="90")),
+            "exclude_system_objects": self.prompts.confirm("Exclude system objects from profiling?", default=True),
+            "include_performance_metrics": self.prompts.confirm("Include performance metrics?", default=True),
+            "include_cost_analysis": self.prompts.confirm("Include cost analysis?", default=True),
+        }
+
+        credential = {
+            "secret_vault_type": secret_vault_type,
+            "secret_vault_name": secret_vault_name,
+            source: {
+                "connection": snowflake_connection,
+                "profiler": snowflake_profiler,
+            },
+        }
+        _save_to_disk(credential, cred_file)
+
+        logger.info(f"Credential template created for {source}.")
+        return source
+
+
 def create_assessment_configurator(
     source_system: str, product_name: str, prompts: Prompts, credential_file=None
 ) -> AssessmentConfigurator:
@@ -186,6 +235,7 @@ def create_assessment_configurator(
     configurators = {
         "mssql": ConfigureSqlServerAssessment,
         "synapse": ConfigureSynapseAssessment,
+        "snowflake": ConfigureSnowflakeAssessment,
     }
 
     if source_system not in configurators:
