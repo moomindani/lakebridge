@@ -200,15 +200,15 @@ class ConfigureSnowflakeAssessment(AssessmentConfigurator):
         # Authentication method selection with clear examples
         logger.info("\nAuthentication Options:")
         logger.info("  [0] External Browser (SSO) - Opens browser for authentication")
-        logger.info("      Example: jdbc:snowflake://IKSJSZD-ZAB08105.snowflakecomputing.com/?user=JWNEIL&warehouse=BANANAPUDDING&authenticator=externalbrowser")
+        logger.info("      Example: jdbc:snowflake://mycompany.snowflakecomputing.com/?user=myuser&warehouse=COMPUTE_WH&authenticator=externalbrowser")
         logger.info("  [1] Password/Token - Direct username/password authentication")
-        logger.info("      Example: jdbc:snowflake://IKSJSZD-ZAB08105.snowflakecomputing.com/?user=JWNEIL&warehouse=BANANAPUDDING&password=my_password")
+        logger.info("      Example: jdbc:snowflake://mycompany.snowflakecomputing.com/?user=myuser&warehouse=COMPUTE_WH&password=my_password")
         
         auth_method = self.prompts.choice("Select authentication method", ["externalbrowser", "password"])
         
         snowflake_connection = {
-            "account": self.prompts.question("Enter Snowflake account URL (e.g., IKSJSZD-ZAB08105.snowflakecomputing.com)", default="myaccount.snowflakecomputing.com"),
-            "user": self.prompts.question("Enter username (e.g., JWNEIL)"),
+            "account": self.prompts.question("Enter Snowflake account URL (e.g., mycompany.snowflakecomputing.com)", default="mycompany.snowflakecomputing.com"),
+            "user": self.prompts.question("Enter username (e.g., myuser)"),
             "warehouse": self.prompts.question("Enter warehouse name", default="COMPUTE_WH"),
             "database": self.prompts.question("Enter database name", default="SNOWFLAKE"),
             "schema": self.prompts.question("Enter schema name", default="ACCOUNT_USAGE"),
