@@ -75,7 +75,7 @@ class SnowflakeConnector(_BaseConnector):
             ) from e
 
         # Extract connection details from config
-        connection_config = self._config.get("connection", self._config)
+        connection_config = self.config.get("connection", self.config)
         
         account = connection_config["account"]
         user = connection_config["user"]
