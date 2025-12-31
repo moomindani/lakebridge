@@ -132,7 +132,7 @@ def get_assessment_queries():
     return {
         "query_history": {
             "name": "query_history", 
-            "description": "Query History (Last 7 days)",
+            "description": "Query History (Last 90 days)",
             "sql": """
                 SELECT 
                     query_id,
@@ -154,14 +154,14 @@ def get_assessment_queries():
                     execution_time,
                     credits_used_cloud_services
                 FROM snowflake.account_usage.query_history
-                WHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+                WHERE start_time >= DATEADD('day', -90, CURRENT_TIMESTAMP())
                 ORDER BY start_time DESC
-                LIMIT 100
+                LIMIT 1000
             """
         },
         "warehouse_usage": {
             "name": "warehouse_usage",
-            "description": "Warehouse Usage (Last 7 days)", 
+            "description": "Warehouse Usage (Last 90 days)", 
             "sql": """
                 SELECT 
                     warehouse_id,
@@ -172,9 +172,9 @@ def get_assessment_queries():
                     credits_used_compute,
                     credits_used_cloud_services
                 FROM snowflake.account_usage.warehouse_metering_history
-                WHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+                WHERE start_time >= DATEADD('day', -90, CURRENT_TIMESTAMP())
                 ORDER BY start_time DESC
-                LIMIT 100
+                LIMIT 1000
             """
         },
         "storage_usage": {
@@ -187,9 +187,9 @@ def get_assessment_queries():
                     stage_bytes,
                     failsafe_bytes
                 FROM snowflake.account_usage.storage_usage
-                WHERE usage_date >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+                WHERE usage_date >= DATEADD('day', -90, CURRENT_TIMESTAMP())
                 ORDER BY usage_date DESC
-                LIMIT 100
+                LIMIT 1000
             """
         },
         "user_activity": {
@@ -208,9 +208,9 @@ def get_assessment_queries():
                     error_message,
                     event_timestamp
                 FROM snowflake.account_usage.login_history
-                WHERE event_timestamp >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+                WHERE event_timestamp >= DATEADD('day', -90, CURRENT_TIMESTAMP())
                 ORDER BY event_timestamp DESC
-                LIMIT 100
+                LIMIT 1000
             """
         }
     }
@@ -361,7 +361,7 @@ def main():
     print("🏔️  Snowflake Lakebridge Assessment Demo")
     print("=" * 60)
     print("This demo runs the complete Snowflake assessment workflow")
-    print("using comprehensive ACCOUNT_USAGE schema queries.")
+    print("using comprehensive ACCOUNT_USAGE schema queries (90-day lookback).")
     print("Authentication: Password/Token")
     print()
     

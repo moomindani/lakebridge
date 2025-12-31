@@ -9,10 +9,10 @@ This demo demonstrates the complete Snowflake assessment workflow using the Lake
 - Works with personal access tokens
 
 ✅ **Comprehensive Data Extraction**
-- Query History (last 7 days)
-- Warehouse Usage and Credits
-- Storage Usage by Database
-- User Login History
+- Query History (last 90 days)
+- Warehouse Usage and Credits (90-day lookback)
+- Storage Usage by Database (90-day history)
+- User Login History (90-day activity)
 
 ✅ **DuckDB Integration**
 - Automatic timestamped database creation
