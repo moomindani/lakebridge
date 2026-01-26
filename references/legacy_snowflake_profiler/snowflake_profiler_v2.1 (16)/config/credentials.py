@@ -8,9 +8,9 @@
 
 # 2. Add secrets to the scope
 # Run in terminal or %sh cell:
-# databricks secrets put-secret --scope snowflake-profiler --key url --string-value "https://IKSJSZD-ZAB08105.snowflakecomputing.com"
-# databricks secrets put-secret --scope snowflake-profiler --key username --string-value "JWNEIL"
-# databricks secrets put-secret --scope snowflake-profiler --key password --string-value "Yankees!7"
+# databricks secrets put-secret --scope snowflake-profiler --key url --string-value "<YOUR_SNOWFLAKE_URL>"
+# databricks secrets put-secret --scope snowflake-profiler --key username --string-value "<YOUR_USERNAME>"
+# databricks secrets put-secret --scope snowflake-profiler --key password --string-value "<YOUR_PASSWORD>"
 
 # COMMAND ----------
 
@@ -20,20 +20,20 @@
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC databricks secrets put-secret --scope snowflake-profiler --key url --string-value "https://IKSJSZD-ZAB08105.snowflakecomputing.com"
-# MAGIC databricks secrets put-secret --scope snowflake-profiler --key username --string-value "JWNEIL"
-# MAGIC databricks secrets put-secret --scope snowflake-profiler --key password --string-value "Yankees!7"
+# MAGIC databricks secrets put-secret --scope snowflake-profiler --key url --string-value "<YOUR_SNOWFLAKE_URL>"
+# MAGIC databricks secrets put-secret --scope snowflake-profiler --key username --string-value "<YOUR_USERNAME>"
+# MAGIC databricks secrets put-secret --scope snowflake-profiler --key password --string-value "<YOUR_PASSWORD>"
 
 # COMMAND ----------
 
 """
 Enter credentials here
-credentials : {"sfURL"       : "https://IKSJSZD-ZAB08105.snowflakecomputing.com",
-               "sfUser"      : "JWNEIL",
-               "sfPassword"  : "Yankees!7",
-               "sfDatabase"  : "SNOWFLAKE",
-               "sfSchema"    : "ACCOUNT_USAGE",
-               "sfWarehouse" : "BANANAPUDDING"}
+credentials : {"sfURL"       : "<YOUR_SNOWFLAKE_URL>",
+               "sfUser"      : "<YOUR_USERNAME>",
+               "sfPassword"  : "<YOUR_PASSWORD>",
+               "sfDatabase"  : "<YOUR_DATABASE>",
+               "sfSchema"    : "<YOUR_SCHEMA>",
+               "sfWarehouse" : "<YOUR_WAREHOUSE>"}
 """
 
 # snowflake connection information
