@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import abc
 import asyncio
+import functools
+import inspect
 import logging
 import os
 import shutil
@@ -10,7 +12,8 @@ import venv
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, ClassVar, cast
+from types import MethodType
+from typing import Any, ClassVar, Literal, TypeVar, cast
 
 import attrs
 import yaml
@@ -32,9 +35,10 @@ from lsprotocol.types import Position as LSPPosition
 from lsprotocol.types import Range as LSPRange
 from lsprotocol.types import Registration, RegistrationParams, TextDocumentIdentifier, TextDocumentItem, TextEdit
 from pygls.exceptions import FeatureRequestError
-from pygls.lsp.client import BaseLanguageClient
+from pygls.lsp.client import LanguageClient
 
 from databricks.labs.blueprint.installation import JsonValue, RootJsonValue
+from databricks.labs.blueprint.logger import readlines
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.lakebridge.config import LSPConfigOptionV1, TranspileConfig, TranspileResult, extract_string_field
 from databricks.labs.lakebridge.errors.exceptions import IllegalStateException
@@ -184,16 +188,6 @@ class LSPConfig:
             return {}
 
 
-def lsp_feature(name: str, options: Any | None = None):
-    def wrapped(func: Callable):
-        _LSP_FEATURES.append((name, options, func))
-        return func
-
-    return wrapped
-
-
-_LSP_FEATURES: list[tuple[str, Any | None, Callable]] = []
-
 # the below code also exists in lsp_server.py
 # it will be factorized as part of https://github.com/databrickslabs/remorph/issues/1304
 TRANSPILE_TO_DATABRICKS_METHOD = "document/transpileToDatabricks"
@@ -253,13 +247,93 @@ METHOD_TO_TYPES[TRANSPILE_TO_DATABRICKS_METHOD] = (
 )
 
 
-# subclass BaseLanguageClient so we can override stuff when required
-class LanguageClient(BaseLanguageClient):
+ELC = TypeVar("ELC", bound="ExtendableLanguageClient")
+
+
+def lsp_feature(feature_name: str, options: Any | None = None) -> Callable[[Callable], Callable]:
+    """Decorator to mark a function as a callback for a server-to-client request/notification."""
+
+    # Decoration marks the function, but does not register it yet.
+    def wrap(func: Callable) -> Callable:
+        ExtendableLanguageClient.mark_feature_callback(feature_name, func, options)
+        return func
+
+    return wrap
+
+
+class ExtendableLanguageClient(LanguageClient):
+    @classmethod
+    def mark_feature_callback(cls, feature: str, func: Callable, options: Any) -> None:
+        # Mark a function by adding the feature to its list of features.
+        prior_feature_list = getattr(func, cls._MarkedMethod.feature_marker_attribute, [])
+        feature_list = [*prior_feature_list, (feature, options)]
+        setattr(func, cls._MarkedMethod.feature_marker_attribute, feature_list)
+
+    @dataclass(frozen=True)
+    class _MarkedMethod:
+        name: str
+        method: MethodType
+        # Features names, and corresponding options for the callback.
+        lsp_features: Sequence[tuple[str, Any]]
+
+        # Name of the attribute we set on functions to mark them as LSP feature callbacks.
+        # The attribute holds a list of [name, options] tuples representing the feature name and options to provide to
+        # the callback.
+        feature_marker_attribute: ClassVar[str] = "_lsp_features"
+
+        @classmethod
+        def from_method(cls, name: str, method: MethodType) -> ExtendableLanguageClient._MarkedMethod | None:
+            func = method.__func__
+            feature_markers = getattr(func, cls.feature_marker_attribute, None)
+            return cls(name, method, feature_markers) if feature_markers is not None else None
+
+    @classmethod
+    def _fetch_feature_callbacks(cls: type[ELC], instance: ELC) -> Sequence[_MarkedMethod]:
+        # Iterate over the methods, looking for those marked as feature callbacks.
+        return [
+            marked_method
+            for name, method in inspect.getmembers(instance, predicate=inspect.ismethod)
+            if (marked_method := cls._MarkedMethod.from_method(name, method)) is not None
+        ]
+
+    @classmethod
+    def _wrap_method_as_function(cls, method: Callable) -> Callable:
+        # A quirk of python is that methods (=bound functions) can't have properties set, but functions can.
+        # PyGLS relies on setting properties on the callback, so we need to give it a function rather than a method.
+        if inspect.iscoroutinefunction(method):
+
+            @functools.wraps(method)
+            async def wrapper(*args, **kwargs):
+                return await method(*args, **kwargs)
+
+        else:
+
+            @functools.wraps(method)
+            def wrapper(*args, **kwargs):
+                return method(*args, **kwargs)
+
+        return wrapper
+
+    def _register_lsp_callbacks(self) -> None:
+        # Locate all feature callbacks on this instance and ensure they are registered.
+        for marked_method in self._fetch_feature_callbacks(self):
+            wrapped_method = self._wrap_method_as_function(marked_method.method)
+            for feature_name, options in marked_method.lsp_features:
+                decorator = self.protocol.fm.feature(feature_name, options)
+                wrapped_method = decorator(wrapped_method)
+            # Replace the method on this instance with its decorated version.
+            setattr(self, marked_method.name, wrapped_method)
+
+    def __init__(self, name: str, version: str) -> None:
+        super().__init__(name, version)
+        self._register_lsp_callbacks()
+
+
+class LakebridgeLanguageClient(ExtendableLanguageClient):
 
     def __init__(self, name: str, version: str) -> None:
         super().__init__(name, version)
         self._transpile_to_databricks_capability: Registration | None = None
-        self._register_lsp_features()
 
     @property
     def is_alive(self):
@@ -270,7 +344,7 @@ class LanguageClient(BaseLanguageClient):
         return self._transpile_to_databricks_capability
 
     @lsp_feature(CLIENT_REGISTER_CAPABILITY)
-    def register_capabilities(self, params: RegistrationParams) -> None:
+    async def register_capabilities(self, params: RegistrationParams) -> None:
         for registration in params.registrations:
             if registration.method == TRANSPILE_TO_DATABRICKS_METHOD:
                 logger.debug(f"Registered capability: {registration.method}")
@@ -297,105 +371,36 @@ class LanguageClient(BaseLanguageClient):
             raise IllegalStateException("Client has not yet registered its transpile capability.")
         return await self.protocol.send_request_async(TRANSPILE_TO_DATABRICKS_METHOD, params)
 
-    # can't use @client.feature because it requires a global instance
-    def _register_lsp_features(self):
-        for name, options, func in _LSP_FEATURES:
-            decorator = self.protocol.fm.feature(name, options)
-            wrapper = self._wrapper_for_lsp_feature(func)
-            decorator(wrapper)
-
-    def _wrapper_for_lsp_feature(self, func):
-        def wrapper(params):
-            return func(self, params)
-
-        return wrapper
-
     _DEFAULT_LIMIT: ClassVar[int] = 64 * 1024
 
     async def start_io(self, cmd: str, *args, limit: int = _DEFAULT_LIMIT, **kwargs):
         await super().start_io(cmd, *args, limit=limit, **kwargs)
         # forward stderr
         task = asyncio.create_task(self.pipe_stderr(limit=limit), name="pipe-lsp-stderr")
-        task.add_done_callback(self._detect_pipe_stderr_exception)
         self._async_tasks.append(task)
 
     async def pipe_stderr(self, *, limit: int = _DEFAULT_LIMIT) -> None:
         assert (server := self._server) is not None
         assert (stderr := server.stderr) is not None
 
-        return await self.pipe_stream(stream=stderr, limit=limit)
-
-    @staticmethod
-    async def pipe_stream(*, stream: asyncio.StreamReader, limit: int) -> None:
-        """Read lines from the LSP server's stderr and log them.
-
-        The lines will be logged in real-time as they arrive, once the newline character is seen. Trailing whitespace
-        is stripped from each line before logging, and empty lines are ignored.
-
-        On EOF any pending line will be logged, even if it is incomplete (i.e. does not end with a newline).
-
-        Logs are treated as UTF-8, with invalid byte sequences replaced with the Unicode replacement character.
-
-        Long lines will be split into chunks with a maximum length of the limit. If the split falls in the middle of a
-        multi-byte UTF-8 character, the bytes on either side of the boundary will likely be invalid and logged as such.
-
-        Args:
-              stream: The stream to mirror as logger output.
-              limit: The maximum number of bytes for a line to be logged as a single line. Longer lines will be split
-                into chunks and logged as each chunk arrives.
-        """
-        # Maximum size of pending buffer is the limit argument.
-        pending_buffer = bytearray()
-
-        # Loop, reading whatever data is available as it arrives.
-        while chunk := await stream.read(limit - len(pending_buffer)):
-            # Process the chunk we've read, line by line.
-            line_from = 0
-            while -1 != (idx := chunk.find(b"\n", line_from)):
-                # Figure out the slice corresponding to this line, accounting for any pending data the last read.
-                line_chunk = memoryview(chunk)[line_from:idx]
-                line_bytes: bytearray | bytes
-                if pending_buffer:
-                    pending_buffer.extend(line_chunk)
-                    line_bytes = pending_buffer
-                else:
-                    line_bytes = bytes(line_chunk)
-                del line_chunk
-
-                # Invalid UTF-8 isn't great, but we can at least log it with the replacement character rather than
-                # dropping it silently or triggering an exception.
-                message = line_bytes.decode("utf-8", errors="replace").rstrip()
-                if message:
-                    logger.debug(message)
-                del line_bytes, message
-
-                # Set up for handling the next line of this chunk.
-                pending_buffer.clear()
-                line_from = idx + 1
-            # Anything remaining in this chunk is pending data for the next read.
-            if remaining := memoryview(chunk)[line_from:]:
-                pending_buffer.extend(remaining)
-                if len(pending_buffer) >= limit:
-                    # Line too long, log what we have and reset.
-                    log_now = pending_buffer[:limit]
-                    message = log_now.decode("utf-8", errors="replace").rstrip()
-                    if message:
-                        # Note: the very next character might be a '\n', but we don't know that yet. So might be more
-                        # for this line, might not be.
-                        logger.debug(f"{message}[..?]")
-                    del log_now, message, pending_buffer[:limit]
-            del remaining
-        if pending_buffer:
-            # Here we've hit EOF but have an incomplete line pending. Log it anyway.
-            message = pending_buffer.decode("utf-8", errors="replace").rstrip()
-            if message:
-                logger.debug(f"{message} <missing EOL at EOF>")
-
-    def _detect_pipe_stderr_exception(self, task: asyncio.Task) -> None:
-        if (err := task.exception()) is not None:
-            logger.critical("An error occurred while processing LSP server output", exc_info=err)
-        elif not self._stop_event.is_set():
-            logger.warning("LSP server stderr closed prematurely, no more output will be logged.")
+        try:
+            async for line in readlines(stream=stderr, limit=limit):
+                logger.debug(str(line))
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.critical("An error occurred while reading LSP server output; now draining.", exc_info=e)
+            # Drain to prevent blocking of the subprocess if the pipe is unread.
+            try:
+                while await stderr.read(limit):
+                    pass
+            except Exception as drain_error:  # pylint: disable=broad-exception-caught
+                # Exception while draining, situation seems unrecoverable.
+                logger.warning(
+                    "Uncoverable error draining LSP server output; beware of deadlock.", exc_info=drain_error
+                )
+        else:
+            if not self._stop_event.is_set():
+                logger.warning("LSP server stderr closed prematurely, no more output will be logged.")
+        logger.debug("Finished piping stderr from subprocess.")
 
 
 class ChangeManager(abc.ABC):
@@ -524,7 +529,7 @@ class LSPEngine(TranspileEngine):
         self._workdir = workdir
         self._config = config
         name, version = self.client_metadata()
-        self._client = LanguageClient(name, version)
+        self._client = LakebridgeLanguageClient(name, version)
         self._init_response: InitializeResult | None = None
 
     @property
@@ -569,6 +574,20 @@ class LSPEngine(TranspileEngine):
         self._init_response = await self._client.initialize_async(params)
 
     async def _start_server(self) -> None:
+        """Start the LSP server process, using the command-line from the configuration.
+
+        If the executable in the command-line is not an absolute path, it is resolved in a platform-independent way
+        with special handling for virtual environments and python. Specifically:
+          - If the working directory contains a ".venv" subdirectory, it is treated as a virtual environment and
+            activated for the purpose of locating the LSP server executable: the virtual environment's bin/script
+            directory is prepended to the PATH environment variable.
+          - If the executable is "python" or "python3" and the above virtual environment is missing, the current python
+            interpreter is used.
+          - Otherwise, the executable is located via the system PATH.
+
+        Raises:
+            ValueError: If the command-line is missing from the configuration or the executable cannot be located.
+        """
         # Sanity-check and split the command-line into components.
         if not (command_line := self._config.remorph.command_line):
             raise ValueError(f"Missing command line for LSP server: {self._config.path}")
@@ -584,13 +603,22 @@ class LSPEngine(TranspileEngine):
             executable, additional_path = self._activate_venv(venv_path, executable)
             # Ensure PATH is in sync with the search path we will use to locate the LSP server executable.
             env["PATH"] = path = f"{additional_path}{os.pathsep}{path}"
-        logger.debug(f"Using PATH for launching LSP server: {path}")
+            logger.debug(f"Using modified PATH for launching LSP server: {path}")
+        elif os.path.normcase(executable) in {"python", "python3"}:
+            # If Python is requested without a dedicated venv, use the current interpreter rather than searching PATH.
+            # (Searching PATH might find an unexpected system python, which is unlikely to have the required packages
+            # installed.)
+            executable = sys.executable
+            logger.debug(f"No dedicated virtual environment, using current interpreter for LSP server: {executable}")
+        else:
+            logger.debug(f"Using PATH for launching LSP server: {path}")
 
         # Locate the LSP server executable in a platform-independent way.
         # Reference: https://docs.python.org/3/library/subprocess.html#popen-constructor
-        executable = shutil.which(executable, path=path) or executable
+        if (resolved_executable := shutil.which(executable, path=path)) is None:
+            raise ValueError(f"Could not locate LSP server executable: {executable}")
 
-        await self._launch_executable(executable, args, env)
+        await self._launch_executable(resolved_executable, args, env)
 
     @staticmethod
     def _activate_venv(venv_path: Path, executable: str) -> tuple[str, Path]:
@@ -608,7 +636,7 @@ class LSPEngine(TranspileEngine):
         return executable, context.bin_path
 
     async def _launch_executable(self, executable: str, args: Sequence[str], env: Mapping[str, str]) -> None:
-        log_level = logging.getLevelName(logging.getLogger("databricks").level)
+        log_level = logging.getLevelName(logging.getLogger("databricks").getEffectiveLevel())
         # TODO: Remove the --log_level argument once all our transpilers support the environment variable.
         args = [*args, f"--log_level={log_level}"]
         env = {**env, "DATABRICKS_LAKEBRIDGE_LOG_LEVEL": log_level}
