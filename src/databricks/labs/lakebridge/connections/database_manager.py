@@ -132,7 +132,7 @@ class DatabaseManager:
 
     def check_connection(self) -> bool:
         query = "SELECT 101 AS test_column"
-        if self._db_type.lower() == "Oracle":
+        if self._db_type.lower() == "oracle":
             query = "SELECT 101 AS test_column FROM dual"
         result = self.fetch(query)
         if result is None:
