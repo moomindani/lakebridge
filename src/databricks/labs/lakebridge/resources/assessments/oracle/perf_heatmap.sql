@@ -1,7 +1,7 @@
-SELECT TO_CHAR(mtime,'YYYY/MM/DD') mtime,
+SELECT TO_DATE(TO_CHAR(mtime,'YYYY/MM/DD'), 'YYYY/MM/DD') mtime,
 	      pdb_name,
 	      instance_number,
-	      TO_CHAR(mtime,'HH24') d,
+	      TO_CHAR(mtime,'HH24') hour,
 	      core_nb,
 	      LOAD AS value
 	FROM

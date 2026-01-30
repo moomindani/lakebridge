@@ -1,6 +1,6 @@
 select con.name,
  sh.instance_number,u.username,
- to_char(sh.sample_time,'YYYY-MM-DD HH24:MI') as snap_time,
+ to_date(to_char(sh.sample_time,'YYYY-MM-DD HH24:MI')) as snap_time,
  count(distinct sh.session_id||','||sh.session_serial#) as foregd_session_cnt
 from cdb_hist_active_sess_history sh,
  (
@@ -32,6 +32,6 @@ where sh.con_id = con.con_id
  and sh.session_type = 'FOREGROUND'
 group by con.name,
  sh.instance_number,
- to_char(sh.sample_time,'YYYY-MM-DD HH24:MI'),
+ to_date(to_char(sh.sample_time,'YYYY-MM-DD HH24:MI')),
  u.username
 order by 1, 4, 2

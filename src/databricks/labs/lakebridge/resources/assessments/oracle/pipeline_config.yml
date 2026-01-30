@@ -62,12 +62,6 @@ steps:
     mode: overwrite
     frequency: once
     flag: active
-  - name: perf_heatmap_raw
-    type: sql
-    extract_source: src/databricks/labs/lakebridge/resources/assessments/oracle/perf_heatmap_raw.sql
-    mode: overwrite
-    frequency: once
-    flag: inactive
   - name: perf_sqltext
     type: sql
     extract_source: src/databricks/labs/lakebridge/resources/assessments/oracle/perf_sqltext.sql

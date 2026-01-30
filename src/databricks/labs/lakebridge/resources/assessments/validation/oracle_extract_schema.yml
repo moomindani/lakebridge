@@ -1,0 +1,51 @@
+source_tech: synapse
+version: 0.1
+
+schemas:
+  main:
+    tables:
+      config_containers:
+        columns:
+          - name: TABLE_CATALOG
+            type: VARCHAR
+      config_db_features:
+        columns:
+          - name:
+            type:
+      config_instance:
+        columns:
+          - name:
+            type:
+      config_memory_evolution:
+        columns:
+          - name:
+            type:
+      config_pdb_objects:
+        columns:
+          - name:
+            type:
+      config_pdb_partitions:
+        columns:
+          - name:
+            type:
+      config_storage:
+        columns:
+          - name:
+            type:
+      perf_cpu_waits:
+        columns:
+          - name:
+            type:
+      perf_fgd_session_evolution:
+        columns:
+          - name:
+            type:
+      perf_heatmap:
+        columns:
+          - name:
+            type:
+      perf_sqltext:
+        columns:
+          - name:
+            type:
+
