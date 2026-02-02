@@ -87,7 +87,20 @@ def test_account_usage_access(credentials):
         return True
         
     except Exception as e:
+        error_msg = str(e)
         print(f"❌ ACCOUNT_USAGE access failed: {e}")
+        
+        print("\n🔍 ACCOUNT_USAGE Error Analysis:")
+        if "does not exist or not authorized" in error_msg or "002003" in error_msg:
+            print("   🏢 ROLE/PERMISSION ISSUE")
+            print("   Your role may not have access to ACCOUNT_USAGE schema")
+            print("   💡 Try using role ACCOUNTADMIN or contact your admin")
+        elif "warehouse" in error_msg.lower():
+            print("   🏭 WAREHOUSE ISSUE")
+            print("   The specified warehouse may not exist or not accessible")
+        else:
+            print("   ❓ UNKNOWN ACCOUNT_USAGE ERROR")
+            
         print("💡 Will use alternative queries that don't require special permissions")
         return False
 
@@ -95,12 +108,24 @@ def test_snowflake_connection(credentials):
     """Test connection to Snowflake with minimal parameters"""
     try:
         import snowflake.connector
+        import requests
         
         print("\n🔍 Testing Snowflake connection...")
         
         # Extract account from URL for connection
         sf_url = credentials.get("sfURL", "")
         account = sf_url.replace("https://", "").replace(".snowflakecomputing.com", "") if sf_url else ""
+        
+        print(f"   📍 Account: {account}")
+        print(f"   👤 User: {credentials['sfUser']}")
+        print(f"   🌐 URL: {sf_url}")
+        
+        # Get current public IP for diagnostic purposes
+        try:
+            public_ip = requests.get('https://api.ipify.org', timeout=5).text
+            print(f"   🔗 Your public IP: {public_ip}")
+        except:
+            print("   🔗 Could not determine public IP")
         
         # Minimal connection parameters
         conn_params = {
@@ -125,6 +150,90 @@ def test_snowflake_connection(credentials):
         
     except Exception as e:
         print(f"❌ Connection failed: {e}")
+        print("\n🔍 Detailed Error Analysis:")
+        
+        error_msg = str(e)
+        if "Network policy is required" in error_msg:
+            print("   🚫 NETWORK POLICY RESTRICTION")
+            print("   This Snowflake account has network policies configured that restrict")
+            print("   connections to specific IP addresses or ranges.")
+            print("\n   💡 To resolve this issue:")
+            print("   1. Contact your Snowflake administrator to add your IP to the allowlist")
+            print("   2. Or connect from a VPN/network that's already allowed")
+            print("   3. Or ask admin to temporarily disable network policies")
+            
+        elif "Invalid username or password" in error_msg or "390100" in error_msg:
+            print("   🔐 AUTHENTICATION FAILURE")
+            print("   Username or password is incorrect")
+            
+        elif "does not exist or not authorized" in error_msg:
+            print("   🏢 ACCOUNT/USER AUTHORIZATION")
+            print("   Account name might be incorrect or user not authorized")
+            
+        elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
+            print("   🌐 NETWORK/CONNECTIVITY ISSUE")
+            print("   Network connectivity problem or firewall blocking connection")
+            
+        else:
+            print("   ❓ UNKNOWN ERROR")
+            print(f"   Full error details: {error_msg}")
+        
+        # Additional diagnostic info
+        print(f"\n   📋 Connection attempted to:")
+        print(f"      Account: {account}")
+        print(f"      User: {credentials['sfUser']}")
+        print(f"      URL: {sf_url}")
+        
+        return False
+
+def check_network_connectivity(sf_url):
+    """Check basic network connectivity to Snowflake account"""
+    try:
+        import requests
+        import socket
+        from urllib.parse import urlparse
+        
+        print("\n🌐 Network Connectivity Check")
+        print("-" * 40)
+        
+        # Parse URL
+        parsed = urlparse(sf_url if sf_url.startswith('http') else f'https://{sf_url}')
+        hostname = parsed.hostname
+        
+        print(f"   🎯 Target: {hostname}")
+        
+        # DNS resolution
+        try:
+            ip = socket.gethostbyname(hostname)
+            print(f"   ✅ DNS Resolution: {hostname} → {ip}")
+        except Exception as e:
+            print(f"   ❌ DNS Resolution failed: {e}")
+            return False
+        
+        # HTTP connectivity test
+        try:
+            response = requests.get(f"https://{hostname}", timeout=10)
+            print(f"   ✅ HTTP connectivity: Status {response.status_code}")
+        except requests.exceptions.Timeout:
+            print(f"   ⚠️  HTTP timeout (may be normal for Snowflake)")
+        except requests.exceptions.ConnectionError as e:
+            print(f"   ❌ HTTP connection error: {e}")
+        except Exception as e:
+            print(f"   ⚠️  HTTP test: {e}")
+        
+        # Port 443 connectivity
+        try:
+            sock = socket.create_connection((hostname, 443), timeout=10)
+            sock.close()
+            print(f"   ✅ Port 443 connectivity: OK")
+        except Exception as e:
+            print(f"   ❌ Port 443 connectivity: {e}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"   ❌ Network check failed: {e}")
         return False
 
 def get_assessment_queries():
@@ -374,7 +483,14 @@ def main():
     
     # Step 2: Test connection
     if not test_snowflake_connection(credentials):
+        # Run network connectivity check for additional diagnostics
+        sf_url = credentials.get("sfURL", "")
+        check_network_connectivity(sf_url)
         print("\n❌ Cannot proceed without a valid connection.")
+        print("\n💡 Next steps:")
+        print("   1. If you see 'Network policy' error, contact your Snowflake admin")
+        print("   2. Ask them to add your IP to the network policy allowlist")
+        print("   3. Or try connecting from an approved network/VPN")
         return
     
     # Test ACCOUNT_USAGE access
