@@ -73,6 +73,7 @@ def _create_connector(db_type: str, config: dict[str, Any]) -> DatabaseConnector
 class SnowflakeConnector(_BaseConnector):
     def _connect(self) -> Engine:
         raise NotImplementedError("Snowflake connector not implemented")
+
 class MSSQLConnector(_BaseConnector):
     def _connect(self) -> Engine:
         auth_type = self.config.get('auth_type', 'sql_authentication')

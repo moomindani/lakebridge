@@ -2,12 +2,12 @@
 
 select cont.name as pdb_name,
        ash.instance_number,
-       ash.mtime,
+       TO_DATE(ash.mtime,'YYYY-MM-DD HH24') as mtime,
        ash.event,
        ash.wait_class,
        ash.total_wait_time
 from (SELECT instance_number,con_id,CON_DBID,
-        TO_DATE(TO_CHAR(sample_time,'YYYY-MM-DD HH24')) mtime,
+        TO_CHAR(sample_time,'YYYY-MM-DD HH24') mtime,
         NVL(a.event, 'ON CPU') AS event,
         NVL(a.wait_class, 'ON CPU') AS wait_class,
         COUNT(*)*10 AS total_wait_time

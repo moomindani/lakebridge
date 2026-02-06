@@ -7,7 +7,8 @@ select dt
     ,sum(elapsed_time)/1000000 as total_run_time_secs
 from
 ( select  g.con_id,g.instance_number,
-     to_date(to_char(begin_interval_time,'YYYY-MM-DD HH24:MI')) dt,
+     trunc(begin_interval_time,'MI') as dt,
+     -- to_date(to_char(begin_interval_time,'YYYY-MM-DD HH24:MI')) dt,
      case WHEN name='CREATE TABLE' AND instr(upper(TRANSLATE(dbms_lob.substr(t.SQL_TEXT,2000),chr(10)||chr(13), ' ')), 'SELECT') > 0 THEN 'ETL'
 	  WHEN name='INSERT' AND instr(upper(TRANSLATE(dbms_lob.substr(t.SQL_TEXT,2000),chr(10)||chr(13), ' ')), 'SELECT') > 0 THEN 'ETL'
 	  WHEN name='UPDATE' AND instr(upper(TRANSLATE(dbms_lob.substr(t.SQL_TEXT,2000),chr(10)||chr(13), ' ')), 'SELECT') > 0 THEN 'ETL'
