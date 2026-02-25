@@ -52,8 +52,8 @@ class PipelineClass:
             execution_results.append(result)
             self._log_step_result(result)
 
-            # Fail immediately if DDL step failed
-            if step.type == "ddl" and result.status == StepExecutionStatus.ERROR:
+            # Fail immediately if DDL or prepare step failed
+            if step.type in {"ddl", "prepare"} and result.status == StepExecutionStatus.ERROR:
                 error_msg = f"Pipeline execution failed due to error in DDL step: {result.step_name}"
                 if result.error_message:
                     error_msg += f" - {result.error_message}"
@@ -85,6 +85,8 @@ class PipelineClass:
                     self._execute_sql_step(step)
                 case "ddl":
                     self._execute_ddl_step(step)
+                case "prepare":
+                    self._execute_prepare_step(step)
                 case "python":
                     self._execute_python_step(step)
                 case _:
@@ -121,6 +123,28 @@ class PipelineClass:
         except Exception as e:
             logging.error(f"SQL execution failed: {str(e)}")
             raise RuntimeError(f"SQL execution failed: {str(e)}") from e
+
+    def _execute_prepare_step(self, step: Step):
+        """Run DDL on source (one statement per file). Used to create/drop objects or views
+        in source before sql steps that depend on them.
+        """
+        logging.debug(f"Reading prepare script from file: {step.extract_source}")
+        content = read_text(Path(step.extract_source)).strip()
+
+        if self.executor is None:
+            logging.error("DatabaseManager executor is not set.")
+            raise RuntimeError("DatabaseManager executor is not set.")
+
+        if not content or all(line.strip().startswith("--") for line in content.split("\n")):
+            logging.warning(f"Prepare step '{step.name}' has no statement in {step.extract_source}")
+            return
+
+        logging.info(f"Executing prepare step '{step.name}' on source")
+        try:
+            self.executor.fetch(content)
+        except Exception as e:
+            logging.error(f"Prepare step failed: {str(e)}")
+            raise RuntimeError(f"Prepare step failed: {str(e)}") from e
 
     def _execute_ddl_step(self, step: Step):
         logging.debug(f"Reading DDL from file: {step.extract_source}")
