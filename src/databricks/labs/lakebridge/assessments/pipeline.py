@@ -53,7 +53,7 @@ class PipelineClass:
             self._log_step_result(result)
 
             # Fail immediately if DDL or prepare step failed
-            if step.type in ("ddl", "prepare") and result.status == StepExecutionStatus.ERROR:
+            if step.type in {"ddl", "prepare"} and result.status == StepExecutionStatus.ERROR:
                 error_msg = f"Pipeline execution failed due to error in DDL step: {result.step_name}"
                 if result.error_message:
                     error_msg += f" - {result.error_message}"
