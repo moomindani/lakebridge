@@ -45,6 +45,7 @@ class DatabaseConnector(contextlib.AbstractContextManager):
     def close(self) -> None:
         pass
 
+
 class _BaseConnector(DatabaseConnector):
     def __init__(self, config: JsonObject):
         self.config = config
@@ -129,15 +130,16 @@ class OracleConnector(_BaseConnector):
 
         db_name = self.config.get('tnsService')
         connection_string = URL.create(
-        drivername="oracle+oracledb",
-        username=self.config['user'],
-        password=self.config['password'],
-        host=self.config['host'],
-        port=self.config.get('tnsPort', 1521),
-        database=db_name
+            drivername="oracle+oracledb",
+            username=self.config['user'],
+            password=self.config['password'],
+            host=self.config['host'],
+            port=self.config.get('tnsPort', 1521),
+            database=db_name,
         )
 
         return create_engine(connection_string)
+
 
 class DatabaseManager:
     def __init__(self, db_type: str, config: JsonObject):

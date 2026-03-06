@@ -7,6 +7,7 @@ import pytest
 from databricks.labs.lakebridge.assessments.pipeline import PipelineClass
 from databricks.labs.lakebridge.assessments.profiler import Profiler
 
+
 # Tests for Oracle profiler section
 def test_Oracle_as_supported_source_technologies() -> None:
     """Test that supported source technologies are correctly returned"""
@@ -15,11 +16,13 @@ def test_Oracle_as_supported_source_technologies() -> None:
     assert isinstance(supported_platforms, list)
     assert "oracle" in supported_platforms
 
+
 def test_Oracle_profile_missing_platform_config() -> None:
     """Test that profiling an unsupported platform raises ValueError"""
     with pytest.raises(ValueError, match="Cannot Proceed without a valid pipeline configuration for oracle"):
         profiler = Profiler("oracle", None)
         profiler.profile()
+
 
 def test_Oracle_profile_execution() -> None:
     """Test successful profiling execution using actual pipeline configuration"""
@@ -28,9 +31,13 @@ def test_Oracle_profile_execution() -> None:
     config_file = path_prefix / "src/databricks/labs/lakebridge/resources/assessments/oracle/pipeline_config.yml"
     config = profiler.path_modifier(config_file=config_file, path_prefix=path_prefix)
     profiler.profile(pipeline_config=config)
-    assert Path("/tmp/data/oracle_assessment/profiler_extract.db").exists(), "Profiler extract database should be created"
+    assert Path(
+        "/tmp/data/oracle_assessment/profiler_extract.db"
+    ).exists(), "Profiler extract database should be created"
+
 
 # End of Oracle profiler tests section
+
 
 def test_supported_source_technologies() -> None:
     """Test that supported source technologies are correctly returned"""

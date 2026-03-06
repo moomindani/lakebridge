@@ -9,7 +9,7 @@ PLATFORM_TO_SOURCE_TECHNOLOGY_CFG = {
 }
 
 # TODO modify this PLATFORM_TO_SOURCE_TECHNOLOGY.keys() once all platforms are supported
-PROFILER_SOURCE_SYSTEM = ["mssql", "synapse","oracle"]
+PROFILER_SOURCE_SYSTEM = ["mssql", "synapse", "oracle"]
 
 
 # This flag indicates whether a connector is required for the source system when pipeline is trigger

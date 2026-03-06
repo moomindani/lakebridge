@@ -1,6 +1,6 @@
 select NVL(con.name,'Entire CDB/Non CDB') con_name,
 	    param.instance_number,
-	    to_char(snap.snap_time,'yyyy-mm-dd HH24:MI:SS') as snap_time,
+	    snap.snap_time,
 	    parameter_name,
 	    value
 from cdb_hist_parameter param,

@@ -71,6 +71,7 @@ class AssessmentConfigurator(ABC):
                     self._test_connection(source, cred_manager)
         logger.info(f"{source.capitalize()} Assessment Configuration Completed")
 
+
 class ConfigureOracleAssessment(AssessmentConfigurator):
     """Oracle specific assessment configuration."""
 
@@ -92,8 +93,12 @@ class ConfigureOracleAssessment(AssessmentConfigurator):
             "secret_vault_name": secret_vault_name,
             source: {
                 "host": self.prompts.question("Enter the host details (Server name, IP address, SCAN Name)"),
-                "tnsPort": int(self.prompts.question("Enter the TNS Listener port number", default=1521, valid_number=True)),
-                "tnsService": self.prompts.question("Enter the TNS service name as registered in the Oracle listener", default="orcl"),
+                "tnsPort": int(
+                    self.prompts.question("Enter the TNS Listener port number", default=1521, valid_number=True)
+                ),
+                "tnsService": self.prompts.question(
+                    "Enter the TNS service name as registered in the Oracle listener", default="orcl"
+                ),
                 "user": self.prompts.question("Enter user name with system privileges", default="SYSTEM"),
                 "password": self.prompts.password("Enter user password"),
             },
@@ -102,6 +107,7 @@ class ConfigureOracleAssessment(AssessmentConfigurator):
         _save_to_disk(credential, cred_file)
         logger.info(f"Credential template created for {source}.")
         return source
+
 
 class ConfigureSqlServerAssessment(AssessmentConfigurator):
     """SQL Server specific assessment configuration."""
