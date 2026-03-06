@@ -94,7 +94,7 @@ class ConfigureOracleAssessment(AssessmentConfigurator):
             source: {
                 "host": self.prompts.question("Enter the host details (Server name, IP address, SCAN Name)"),
                 "tnsPort": int(
-                    self.prompts.question("Enter the TNS Listener port number", default=1521, valid_number=True)
+                    self.prompts.question("Enter the TNS Listener port number", default=str(1521), valid_number=True)
                 ),
                 "tnsService": self.prompts.question(
                     "Enter the TNS service name as registered in the Oracle listener", default="orcl"

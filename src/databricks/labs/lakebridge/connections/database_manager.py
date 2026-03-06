@@ -131,11 +131,11 @@ class OracleConnector(_BaseConnector):
         db_name = self.config.get('tnsService')
         connection_string = URL.create(
             drivername="oracle+oracledb",
-            username=self.config['user'],
-            password=self.config['password'],
-            host=self.config['host'],
-            port=self.config.get('tnsPort', 1521),
-            database=db_name,
+            username=str(self.config['user']),
+            password=str(self.config['password']),
+            host=str(self.config['host']),
+            port=int(str(self.config.get('tnsPort', 1521))),
+            database=str(db_name),
         )
 
         return create_engine(connection_string)

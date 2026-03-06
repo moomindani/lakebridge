@@ -1,4 +1,3 @@
-
 from databricks.labs.lakebridge.assessments.pipeline import PipelineClass
 from databricks.labs.lakebridge.assessments.profiler import Profiler
 
